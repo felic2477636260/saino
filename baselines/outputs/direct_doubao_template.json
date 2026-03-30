@@ -1,0 +1,14 @@
+{
+  "source": "direct_doubao_manual_import",
+  "company_code": "002555",
+  "query": "请生成企业体检报告",
+  "summary": "请将豆包平台在相同模型、相同 prompt、相同文件下生成的摘要粘贴到这里。",
+  "findings": [
+    "请粘贴平台输出中的主要发现。"
+  ],
+  "recommendations": [
+    "请粘贴平台输出中的建议动作。"
+  ],
+  "evidence": [],
+  "report_sections": {}
+}

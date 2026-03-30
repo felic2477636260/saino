@@ -1,0 +1,69 @@
+{
+  "baseline_vs_candidate": {
+    "candidate": {
+      "structure_integrity": {
+        "name": "structure_integrity",
+        "score": 100.0,
+        "notes": "结构化章节数量越多且越稳定，得分越高。"
+      },
+      "evidence_traceability": {
+        "name": "evidence_traceability",
+        "score": 100.0,
+        "notes": "证据条数、章节内证据绑定越充分，得分越高。"
+      },
+      "risk_reasonableness": {
+        "name": "risk_reasonableness",
+        "score": 77,
+        "notes": "存在核验提示通常意味着风险判断更谨慎可解释。"
+      },
+      "recommendation_usefulness": {
+        "name": "recommendation_usefulness",
+        "score": 96,
+        "notes": "建议越具体、条数越充足，基础得分越高。"
+      },
+      "non_repetition": {
+        "name": "non_repetition",
+        "score": 100.0,
+        "notes": "重复率越低，分数越高。"
+      }
+    },
+    "baseline": {
+      "structure_integrity": {
+        "name": "structure_integrity",
+        "score": 84,
+        "notes": "结构化章节数量越多且越稳定，得分越高。"
+      },
+      "evidence_traceability": {
+        "name": "evidence_traceability",
+        "score": 60,
+        "notes": "证据条数、章节内证据绑定越充分，得分越高。"
+      },
+      "risk_reasonableness": {
+        "name": "risk_reasonableness",
+        "score": 65,
+        "notes": "存在核验提示通常意味着风险判断更谨慎可解释。"
+      },
+      "recommendation_usefulness": {
+        "name": "recommendation_usefulness",
+        "score": 72,
+        "notes": "建议越具体、条数越充足，基础得分越高。"
+      },
+      "non_repetition": {
+        "name": "non_repetition",
+        "score": 100.0,
+        "notes": "重复率越低，分数越高。"
+      }
+    },
+    "delta": {
+      "structure_integrity": 16.0,
+      "evidence_traceability": 40.0,
+      "risk_reasonableness": 12,
+      "recommendation_usefulness": 24,
+      "non_repetition": 0.0
+    }
+  },
+  "llm_judge": {
+    "status": "skipped",
+    "reason": "未启用 --with-llm-judge。"
+  }
+}

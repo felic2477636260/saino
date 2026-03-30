@@ -1,0 +1,9 @@
+{
+  "case_id": "002555_default",
+  "company_code": "002555",
+  "query": "请生成企业体检报告",
+  "top_k": 6,
+  "legacy_output": "baselines/outputs/002555_legacy.json",
+  "optimized_output": "baselines/outputs/002555_optimized.json",
+  "external_baseline": "baselines/outputs/direct_doubao_template.json"
+}
