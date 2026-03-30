@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+from models.schemas import PromptTemplate
+
+
+PROMPT_TEMPLATES: list[PromptTemplate] = [
+    PromptTemplate(
+        template_id="game",
+        industry_key="game",
+        industry_label="游戏行业",
+        module_group="featured",
+        capability_label="专属增强",
+        title="游戏行业经营与产品周期分析模板",
+        description="适合在已上传年报、季报、研报或产品资料后，快速组织游戏公司分析提示词。",
+        query_template=(
+            "请基于我上传的资料，为这家游戏公司生成一份正式分析报告。"
+            "重点从产品生命周期、重点新品进度、老游戏流水韧性、买量与费用投放效率、"
+            "海外市场拓展、版号与监管变化、行业竞争格局七个维度展开，并给出明确结论、"
+            "核心证据引用、主要风险和后续需要跟踪的经营指标。"
+        ),
+        preference_template=(
+            "请先给结论和评分，语气偏投研，重点判断新品兑现能力、存量产品现金流、"
+            "出海增量空间和版号政策风险。对没有证据支持的判断请明确标注待验证。"
+        ),
+        guidance=[
+            "先明确核心产品现状，再展开到新品储备、流水表现和商业化效率。",
+            "把买量、版号、出海和行业竞争放到同一条经营逻辑里，不要只罗列信息。",
+            "结论里最好落到“增长驱动、风险暴露、验证指标”三个层次。",
+        ],
+        suggested_documents=[
+            "公司年报、半年报、季报",
+            "重点游戏流水、版号、上线节奏相关资料",
+            "券商游戏行业研报、出海市场跟踪资料",
+        ],
+        example_company_code="002555",
+    ),
+    PromptTemplate(
+        template_id="pharma",
+        industry_key="pharma",
+        industry_label="医药行业",
+        module_group="custom",
+        capability_label="通用模板",
+        title="医药行业研发管线与商业化分析模板",
+        description="适合分析医药企业的研发管线、注册审批、销售兑现和现金消耗节奏。",
+        query_template=(
+            "请基于我上传的资料，为这家医药公司生成一份正式分析报告。"
+            "重点从核心产品销售表现、在研管线进度、注册审批节奏、临床数据质量、"
+            "医保与集采影响、费用投入与现金消耗、未来催化剂七个维度展开，"
+            "并给出结论、证据引用、关键风险和未来跟踪要点。"
+        ),
+        preference_template=(
+            "请突出研发兑现概率、商业化放量节奏和政策风险，优先展示关键产品或管线的"
+            "里程碑、收入贡献和现金流压力，报告保持结构化和审慎口径。"
+        ),
+        guidance=[
+            "优先区分已商业化产品、临床阶段管线和早期储备，不同阶段分开判断。",
+            "把临床数据、审批节奏和销售兑现连成闭环，避免只讲技术不讲经营影响。",
+            "如果资料不足以支持疗效或销售预测，需要明确写出不确定性来源。",
+        ],
+        suggested_documents=[
+            "公司年报、招股书、临床进展公告",
+            "药品注册审批、医保谈判、集采政策资料",
+            "行业竞争格局和同类药物对比研报",
+        ],
+    ),
+    PromptTemplate(
+        template_id="consumer",
+        industry_key="consumer",
+        industry_label="消费行业",
+        module_group="custom",
+        capability_label="通用模板",
+        title="消费行业品牌力与渠道效率分析模板",
+        description="适合分析消费品公司的品牌势能、渠道结构、盈利质量和新品表现。",
+        query_template=(
+            "请基于我上传的资料，为这家消费行业公司生成一份正式分析报告。"
+            "重点从品牌定位与产品结构、渠道扩张质量、同店或终端动销、毛利率与费用率、"
+            "库存与现金流、消费者趋势匹配度、未来增长驱动七个维度展开，"
+            "并给出结论、证据引用、主要风险和建议跟踪指标。"
+        ),
+        preference_template=(
+            "请重点判断品牌力是否持续、渠道扩张是否健康、库存和费用投放是否带来真实增长，"
+            "先给简明结论，再展开关键证据和风险。"
+        ),
+        guidance=[
+            "重点区分收入增长来自提价、放量、渠道扩张还是新品贡献。",
+            "把库存、费用率和经营现金流一起看，判断增长质量。",
+            "如有终端反馈或行业数据，优先用来验证管理层口径。",
+        ],
+        suggested_documents=[
+            "公司财报、渠道调研纪要、终端动销资料",
+            "细分行业景气度与竞争格局研报",
+            "新品上市、营销投放和渠道扩张相关公告",
+        ],
+    ),
+    PromptTemplate(
+        template_id="custom",
+        industry_key="custom",
+        industry_label="自定义",
+        module_group="custom",
+        capability_label="通用模板",
+        title="自定义企业体检模板",
+        description="保留原系统的通用分析方式，适合按自己的问题组织提示词，自由覆盖任意行业。",
+        query_template=(
+            "请从经营质量、盈利能力、现金流与行业趋势四个维度生成企业体检报告，"
+            "并给出主要风险与证据引用。"
+        ),
+        preference_template="先给结论和评分，重点看经营质量、现金流与风险，报告简洁一点。",
+        guidance=[
+            "如果你有特定关注点，可以直接把它们写进分析问题或补充说明里。",
+            "上传资料后，建议在提示词中明确要看的维度、风险和输出顺序。",
+            "适合不确定行业分类、想自行组织问题，或需要混合多个专题时使用。",
+        ],
+        suggested_documents=[
+            "公司公告、年报、季报",
+            "行业研报、竞争对手资料",
+            "你希望模型重点参考的补充文件",
+        ],
+        example_company_code="002555",
+        is_custom=True,
+    ),
+]
+
+
+def list_prompt_templates() -> list[PromptTemplate]:
+    return PROMPT_TEMPLATES

@@ -3,6 +3,7 @@ import type {
   AnalyzeResponse,
   ApiEnvelope,
   HealthData,
+  PromptTemplate,
   ReportDetailResponse,
   ReportHistoryItem,
   SkillInfo,
@@ -56,6 +57,10 @@ export function fetchHealth(): Promise<HealthData> {
 
 export function fetchSkills(): Promise<SkillInfo[]> {
   return request<SkillInfo[]>("/skills");
+}
+
+export function fetchPromptTemplates(): Promise<PromptTemplate[]> {
+  return request<PromptTemplate[]>("/prompt-templates");
 }
 
 export function fetchRecentReports(limit = 6): Promise<ReportHistoryItem[]> {

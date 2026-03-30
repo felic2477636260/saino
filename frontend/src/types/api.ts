@@ -32,6 +32,22 @@ export interface SystemCacheClearResponse {
   };
 }
 
+export interface PromptTemplate {
+  template_id: string;
+  industry_key: string;
+  industry_label: string;
+  module_group: string;
+  capability_label: string;
+  title: string;
+  description: string;
+  query_template: string;
+  preference_template: string;
+  guidance: string[];
+  suggested_documents: string[];
+  example_company_code: string;
+  is_custom: boolean;
+}
+
 export interface SkillInfo {
   skill_id: string;
   name: string;

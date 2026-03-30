@@ -13,11 +13,13 @@ from models.schemas import (
     ApiEnvelope,
     AskRequest,
     AskResponse,
+    PromptTemplate,
     ReportDetailResponse,
     ReportHistoryItem,
     SkillInfo,
 )
 from services.db import Database
+from services.prompt_templates import list_prompt_templates
 from services.report_export import ReportExportService
 from services.report_pdf import ReportPDFService
 from skills.registry import build_default_registry
@@ -117,6 +119,12 @@ def skills() -> ApiEnvelope:
         )
         for item in registry.describe()
     ]
+    return ApiEnvelope(data=items)
+
+
+@app.get("/prompt-templates", response_model=ApiEnvelope)
+def prompt_templates() -> ApiEnvelope:
+    items = [PromptTemplate(**item.model_dump()) for item in list_prompt_templates()]
     return ApiEnvelope(data=items)
 
 

@@ -21,6 +21,8 @@ const {
   history,
   health,
   skillCatalog,
+  promptTemplates,
+  currentTemplate,
   sidebarOpen,
   sidebarCollapsed,
   errorMessage,
@@ -36,6 +38,8 @@ const {
   newAnalysis,
   clearInputs,
   fillExample,
+  selectTemplate,
+  applyActiveTemplate,
   toggleSidebar,
   closeSidebar,
   toggleSidebarCollapse,
@@ -78,6 +82,9 @@ onMounted(() => {
       <template #intro>
         <WelcomeState v-if="!report && status === 'idle'" />
         <AnalysisInputPanel
+          :prompt-templates="promptTemplates"
+          :active-template-id="form.templateId"
+          :current-template="currentTemplate"
           :company-code="form.companyCode"
           :query="form.query"
           :preference-note="form.preferenceNote"
@@ -92,6 +99,8 @@ onMounted(() => {
           @update:query="form.query = $event"
           @update:preference-note="form.preferenceNote = $event"
           @update:top-k="form.topK = $event"
+          @select-template="selectTemplate"
+          @apply-template="applyActiveTemplate"
           @submit="analyze"
           @fill-example="fillExample"
           @clear="clearInputs"

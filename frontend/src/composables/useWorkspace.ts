@@ -1,20 +1,21 @@
 import { computed, reactive, ref, watch } from "vue";
 
-import { EXAMPLE_COMPANY, EXAMPLE_QUERY } from "@/constants/example";
 import {
   analyzeReport,
   clearRecentReports,
   clearSystemCache as clearSystemCacheRequest,
   fetchHealth,
+  fetchPromptTemplates,
   fetchRecentReports,
   fetchReport,
   fetchSkills,
   reportPdfUrl,
 } from "@/lib/api";
-import type { HealthData, ReportDetailResponse, ReportHistoryItem, SkillCatalog } from "@/types/api";
+import type { HealthData, PromptTemplate, ReportDetailResponse, ReportHistoryItem, SkillCatalog } from "@/types/api";
 import type { AnalysisForm, WorkspaceStatus } from "@/types/workspace";
 
 const FORM_STORAGE_KEY = "saino.workspace.form";
+const DEFAULT_TEMPLATE_ID = "custom";
 
 type NoticeTone = "success" | "info";
 
@@ -29,8 +30,10 @@ function readStoredForm(): AnalysisForm | null {
     if (!raw) {
       return null;
     }
+
     const parsed = JSON.parse(raw) as Partial<AnalysisForm>;
     if (
+      (parsed.templateId !== undefined && typeof parsed.templateId !== "string") ||
       typeof parsed.companyCode !== "string" ||
       typeof parsed.query !== "string" ||
       typeof parsed.preferenceNote !== "string" ||
@@ -38,7 +41,9 @@ function readStoredForm(): AnalysisForm | null {
     ) {
       return null;
     }
+
     return {
+      templateId: parsed.templateId || DEFAULT_TEMPLATE_ID,
       companyCode: parsed.companyCode,
       query: parsed.query,
       preferenceNote: parsed.preferenceNote,
@@ -74,6 +79,7 @@ function getErrorMessage(error: unknown): string {
 
 export function useWorkspace() {
   const initialForm = readStoredForm() || {
+    templateId: DEFAULT_TEMPLATE_ID,
     companyCode: "",
     query: "",
     preferenceNote: "",
@@ -89,6 +95,7 @@ export function useWorkspace() {
   const history = ref<ReportHistoryItem[]>([]);
   const health = ref<HealthData | null>(null);
   const skillCatalog = ref<SkillCatalog>({});
+  const promptTemplates = ref<PromptTemplate[]>([]);
   const sidebarOpen = ref(false);
   const sidebarCollapsed = ref(false);
   const lastAction = ref<{ type: "analyze" } | { type: "load-report"; taskId: string } | null>(null);
@@ -104,11 +111,28 @@ export function useWorkspace() {
   const canSubmit = computed(() => form.companyCode.trim().length > 0 && form.query.trim().length > 0);
   const currentPdfUrl = computed(() => (report.value ? reportPdfUrl(report.value.task_id) : ""));
   const busy = computed(() => status.value === "loading" || cacheClearing.value);
+  const currentTemplate = computed<PromptTemplate | null>(() => {
+    if (!promptTemplates.value.length) {
+      return null;
+    }
+
+    return (
+      promptTemplates.value.find((item) => item.template_id === form.templateId) ||
+      promptTemplates.value.find((item) => item.is_custom) ||
+      promptTemplates.value[0] ||
+      null
+    );
+  });
 
   async function refreshMetadata(): Promise<void> {
-    const [healthData, skills] = await Promise.all([fetchHealth(), fetchSkills()]);
+    const [healthData, skills, templates] = await Promise.all([fetchHealth(), fetchSkills(), fetchPromptTemplates()]);
     health.value = healthData;
     skillCatalog.value = Object.fromEntries(skills.map((item) => [item.name, item]));
+    promptTemplates.value = templates;
+
+    if (!templates.some((item) => item.template_id === form.templateId)) {
+      form.templateId = templates.find((item) => item.is_custom)?.template_id || templates[0]?.template_id || DEFAULT_TEMPLATE_ID;
+    }
   }
 
   async function refreshHistory(): Promise<void> {
@@ -222,7 +246,7 @@ export function useWorkspace() {
         "确认清理系统缓存？",
         "",
         "将会清除：",
-        "1. 已导入文档的解析记录与页缓存",
+        "1. 已导入文档的解析记录与页面缓存",
         "2. 检索证据分块、临时索引与知识片段",
         "3. 上一轮分析的报告结果、中间结果与日志",
         "4. 当前前端表单、本地任务状态与界面残留数据",
@@ -249,6 +273,7 @@ export function useWorkspace() {
       report.value = null;
       history.value = [];
       lastAction.value = null;
+      form.templateId = DEFAULT_TEMPLATE_ID;
       form.companyCode = "";
       form.query = "";
       form.preferenceNote = "";
@@ -291,14 +316,34 @@ export function useWorkspace() {
     }
   }
 
-  function fillExample(): void {
-    form.companyCode = EXAMPLE_COMPANY;
-    form.query = EXAMPLE_QUERY;
-    form.preferenceNote = "先给结论和评分，重点看经营质量、现金流与风险，报告简洁一点。";
+  function selectTemplate(templateId: string): void {
+    form.templateId = templateId;
     errorMessage.value = "";
     if (!report.value) {
       status.value = "idle";
     }
+  }
+
+  function applyActiveTemplate(): void {
+    const template = currentTemplate.value;
+    if (!template) {
+      return;
+    }
+
+    form.templateId = template.template_id;
+    if (template.example_company_code) {
+      form.companyCode = template.example_company_code;
+    }
+    form.query = template.query_template;
+    form.preferenceNote = template.preference_template;
+    errorMessage.value = "";
+    if (!report.value) {
+      status.value = "idle";
+    }
+  }
+
+  function fillExample(): void {
+    applyActiveTemplate();
   }
 
   function toggleSidebar(): void {
@@ -323,6 +368,8 @@ export function useWorkspace() {
     history,
     health,
     skillCatalog,
+    promptTemplates,
+    currentTemplate,
     sidebarOpen,
     sidebarCollapsed,
     errorMessage,
@@ -340,6 +387,8 @@ export function useWorkspace() {
     newAnalysis,
     clearInputs,
     fillExample,
+    selectTemplate,
+    applyActiveTemplate,
     toggleSidebar,
     closeSidebar,
     toggleSidebarCollapse,

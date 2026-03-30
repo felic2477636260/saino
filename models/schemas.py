@@ -241,6 +241,22 @@ class SkillInfo(BaseModel):
     reasoning_style: str | None = None
 
 
+class PromptTemplate(BaseModel):
+    template_id: str
+    industry_key: str
+    industry_label: str
+    module_group: str = "custom"
+    capability_label: str = ""
+    title: str
+    description: str
+    query_template: str
+    preference_template: str = ""
+    guidance: list[str] = Field(default_factory=list)
+    suggested_documents: list[str] = Field(default_factory=list)
+    example_company_code: str = ""
+    is_custom: bool = False
+
+
 class ReportHistoryItem(BaseModel):
     task_id: str
     company_code: str

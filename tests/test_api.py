@@ -17,6 +17,14 @@ def test_health():
     assert "model_name" in body
 
 
+def test_prompt_templates():
+    response = client.get("/prompt-templates")
+    assert response.status_code == 200
+    items = response.json()["data"]
+    assert any(item["template_id"] == "game" and item["module_group"] == "featured" for item in items)
+    assert any(item["template_id"] == "custom" and item["is_custom"] is True for item in items)
+
+
 def test_analyze_basic(real_llm_required):
     response = client.post("/analyze", json={"company_code": "002555", "query": "新品进展"})
     assert response.status_code == 200
