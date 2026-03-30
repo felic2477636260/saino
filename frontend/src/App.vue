@@ -6,6 +6,7 @@ import AppShell from "@/components/AppShell.vue";
 import ErrorState from "@/components/ErrorState.vue";
 import LoadingState from "@/components/LoadingState.vue";
 import SidebarNav from "@/components/SidebarNav.vue";
+import SkillWorkbenchPanel from "@/components/SkillWorkbenchPanel.vue";
 import WelcomeState from "@/components/WelcomeState.vue";
 import WorkspaceLayout from "@/components/WorkspaceLayout.vue";
 import ReportPage from "@/components/report/ReportPage.vue";
@@ -133,10 +134,14 @@ onMounted(() => {
       </template>
 
       <template #content>
-        <ReportPage
+        <SkillWorkbenchPanel
           v-if="report"
           :report="report"
           :skill-catalog="skillCatalog"
+        />
+        <ReportPage
+          v-if="report"
+          :report="report"
           :pdf-url="currentPdfUrl"
         />
       </template>

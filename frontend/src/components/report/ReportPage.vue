@@ -9,7 +9,6 @@ import ReportHeader from "@/components/report/ReportHeader.vue";
 import ReportOverviewPanel from "@/components/report/ReportOverviewPanel.vue";
 import RiskOpportunitySection from "@/components/report/RiskOpportunitySection.vue";
 import ScoreSection from "@/components/report/ScoreSection.vue";
-import SkillTraceSection from "@/components/report/SkillTraceSection.vue";
 import VerificationSection from "@/components/report/VerificationSection.vue";
 import {
   getActionItems,
@@ -19,11 +18,10 @@ import {
   getRiskOpportunities,
   getVerificationFocus,
 } from "@/lib/report";
-import type { ReportDetailResponse, SkillCatalog } from "@/types/api";
+import type { ReportDetailResponse } from "@/types/api";
 
 const props = defineProps<{
   report: ReportDetailResponse;
-  skillCatalog: SkillCatalog;
   pdfUrl: string;
 }>();
 
@@ -50,7 +48,6 @@ const verificationFocus = computed(() => getVerificationFocus(props.report));
         <RecommendationsSection :actions="actionItems" :recommendations="nextSteps" />
         <VerificationSection :verification-notes="verificationFocus" />
         <EvidenceSection :evidence="keyEvidence" />
-        <SkillTraceSection :report="report" :skill-catalog="skillCatalog" />
       </ReportOverviewPanel>
 
       <ReportBodySection :report="report" />

@@ -1519,6 +1519,113 @@ a {
   color: var(--text-soft);
 }
 
+.workbench-panel {
+  display: grid;
+  gap: 18px;
+  padding: 24px 26px;
+  border-color: rgba(40, 82, 71, 0.12);
+  background:
+    radial-gradient(circle at top right, rgba(200, 225, 216, 0.28), transparent 28%),
+    linear-gradient(180deg, rgba(250, 252, 249, 0.98), rgba(255, 253, 248, 0.96));
+}
+
+.workbench-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.workbench-panel__header h3 {
+  margin: 8px 0 10px;
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+  letter-spacing: -0.03em;
+}
+
+.workbench-panel__subtitle {
+  margin: 0;
+  max-width: 760px;
+  color: var(--text-soft);
+}
+
+.workbench-panel__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-width: min(100%, 360px);
+}
+
+.workbench-metric {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid rgba(40, 82, 71, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.workbench-metric span {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.workbench-metric strong {
+  font-size: 1.4rem;
+  letter-spacing: -0.03em;
+}
+
+.workbench-panel__diagnostics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.workbench-panel__diagnostics div {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 252, 246, 0.78);
+}
+
+.workbench-panel__diagnostics dt {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.workbench-panel__diagnostics dd {
+  margin: 0;
+  color: var(--text);
+}
+
+.workbench-panel__groups {
+  display: grid;
+  gap: 14px;
+}
+
+.workbench-group {
+  display: grid;
+  gap: 12px;
+}
+
+.workbench-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workbench-group__header h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.skill-card--workbench {
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .technical-details {
   overflow: hidden;
 }
@@ -1615,6 +1722,15 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .workbench-panel__header {
+    flex-direction: column;
+  }
+
+  .workbench-panel__summary,
+  .workbench-panel__diagnostics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .technical-details__grid {
     grid-template-columns: 1fr;
   }
@@ -1687,6 +1803,19 @@ a {
   }
 
   .report-page__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .workbench-panel {
+    padding: 20px;
+  }
+
+  .workbench-panel__header {
+    flex-direction: column;
+  }
+
+  .workbench-panel__summary,
+  .workbench-panel__diagnostics {
     grid-template-columns: 1fr;
   }
 
