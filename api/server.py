@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 
@@ -17,8 +17,12 @@ from models.schemas import (
     ReportDetailResponse,
     ReportHistoryItem,
     SkillInfo,
+    UploadCapabilityResponse,
+    UploadDocumentResponse,
+    UploadedDocumentItem,
 )
 from services.db import Database
+from services.document_upload import DocumentUploadService
 from services.prompt_templates import list_prompt_templates
 from services.report_export import ReportExportService
 from services.report_pdf import ReportPDFService
@@ -43,6 +47,7 @@ registry = build_default_registry()
 db = Database()
 pdf_service = ReportPDFService()
 export_service = ReportExportService()
+document_upload_service = DocumentUploadService()
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
@@ -126,6 +131,55 @@ def skills() -> ApiEnvelope:
 def prompt_templates() -> ApiEnvelope:
     items = [PromptTemplate(**item.model_dump()) for item in list_prompt_templates()]
     return ApiEnvelope(data=items)
+
+
+@app.get("/documents", response_model=ApiEnvelope)
+def list_documents(company_code: str | None = Query(default=None), limit: int = Query(default=50, ge=1, le=100)) -> ApiEnvelope:
+    items = [UploadedDocumentItem(**item) for item in db.list_documents(company_code=company_code, limit=limit)]
+    return ApiEnvelope(data=items)
+
+
+@app.get("/documents/capabilities", response_model=ApiEnvelope)
+def document_capabilities() -> ApiEnvelope:
+    return ApiEnvelope(
+        data=UploadCapabilityResponse(
+            allowed_file_types=document_upload_service.allowed_file_types,
+            accept_extensions=document_upload_service.accept_extensions,
+        )
+    )
+
+
+@app.post("/documents/upload", response_model=ApiEnvelope)
+async def upload_documents(
+    files: list[UploadFile] = File(...),
+    company_code: str = Form(...),
+    company_name: str = Form(default=""),
+    material_type: str = Form(default="company"),
+    industry_key: str = Form(default="generic"),
+) -> ApiEnvelope:
+    try:
+        items = await document_upload_service.save_and_ingest(
+            files=files,
+            company_code=company_code,
+            company_name=company_name,
+            material_type=material_type,
+            industry_key=industry_key,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("document upload failed: %s", exc)
+        raise HTTPException(status_code=500, detail="上传后处理失败，请查看后端日志或稍后重试。") from exc
+
+    return ApiEnvelope(
+        data=UploadDocumentResponse(
+            uploaded_count=len(items),
+            company_code=company_code.strip(),
+            material_type=material_type,
+            allowed_file_types=document_upload_service.allowed_file_types,
+            documents=items,
+        )
+    )
 
 
 @app.get("/reports/recent", response_model=ApiEnvelope)

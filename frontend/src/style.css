@@ -635,6 +635,183 @@ a {
   background: rgba(247, 250, 248, 0.96);
 }
 
+.upload-card {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 249, 0.82);
+}
+
+.upload-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.upload-card__header h3 {
+  margin: 8px 0 8px;
+  font-size: 1.02rem;
+}
+
+.upload-card__header p:last-child,
+.upload-card__hint {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.upload-card__types {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  color: var(--text-faint);
+  font-size: 0.86rem;
+}
+
+.upload-card__types strong {
+  color: var(--text);
+}
+
+.upload-card__controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.upload-field {
+  display: grid;
+  gap: 8px;
+}
+
+.upload-field span {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.upload-field select {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 253, 249, 0.96);
+  color: var(--text);
+  padding: 0 14px;
+  outline: none;
+}
+
+.upload-field select:focus {
+  border-color: rgba(40, 82, 71, 0.35);
+  box-shadow: 0 0 0 4px rgba(40, 82, 71, 0.08);
+}
+
+.upload-field small,
+.upload-actions small,
+.upload-doc-card small {
+  color: var(--text-faint);
+}
+
+.upload-actions {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.upload-progress {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(248, 252, 249, 0.72);
+}
+
+.upload-progress__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upload-progress__header span {
+  color: var(--text-faint);
+  font-size: 0.84rem;
+}
+
+.upload-progress__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(40, 82, 71, 0.1);
+  overflow: hidden;
+}
+
+.upload-progress__bar span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(40, 82, 71, 0.55), rgba(40, 82, 71, 1));
+  animation: upload-slide 1.2s ease-in-out infinite;
+}
+
+.upload-progress__list {
+  display: grid;
+  gap: 10px;
+}
+
+.upload-progress__item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.upload-progress__item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.upload-input {
+  display: none;
+}
+
+.upload-list {
+  display: grid;
+  gap: 12px;
+}
+
+.upload-list__items {
+  display: grid;
+  gap: 10px;
+}
+
+.upload-doc-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px 15px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.upload-doc-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.upload-doc-card p {
+  margin: 0;
+  color: var(--text-soft);
+}
+
 .form-field {
   display: grid;
   gap: 10px;
@@ -1408,6 +1585,18 @@ a {
   }
 }
 
+@keyframes upload-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  50% {
+    transform: translateX(90%);
+  }
+  100% {
+    transform: translateX(220%);
+  }
+}
+
 @keyframes shimmer {
   from {
     background-position: 200% 0;
@@ -1533,6 +1722,8 @@ a {
 
   .input-panel__header,
   .template-card__header,
+  .upload-card__header,
+  .upload-progress__header,
   .input-panel__footer,
   .error-state {
     flex-direction: column;
@@ -1544,6 +1735,10 @@ a {
   }
 
   .template-browser__modules {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-card__controls {
     grid-template-columns: 1fr;
   }
 

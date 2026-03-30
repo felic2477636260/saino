@@ -257,6 +257,31 @@ class PromptTemplate(BaseModel):
     is_custom: bool = False
 
 
+class UploadedDocumentItem(BaseModel):
+    doc_id: str
+    company_code: str
+    company_name: str = ""
+    report_type: str
+    filename: str
+    source_path: str = ""
+    title: str = ""
+    total_pages: int = 0
+    created_at: str | None = None
+
+
+class UploadDocumentResponse(BaseModel):
+    uploaded_count: int
+    company_code: str
+    material_type: str
+    allowed_file_types: list[str] = Field(default_factory=list)
+    documents: list[UploadedDocumentItem] = Field(default_factory=list)
+
+
+class UploadCapabilityResponse(BaseModel):
+    allowed_file_types: list[str] = Field(default_factory=list)
+    accept_extensions: list[str] = Field(default_factory=list)
+
+
 class ReportHistoryItem(BaseModel):
     task_id: str
     company_code: str

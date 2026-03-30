@@ -14,6 +14,7 @@ class Database:
     def __init__(self, db_path: Path | None = None) -> None:
         settings = get_settings()
         self.db_path = Path(db_path or settings.database_path)
+        self.base_dir = settings.data_raw_dir.parent.parent
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_schema()
 
@@ -144,6 +145,34 @@ class Database:
         result = self._decode_result_json(row["result_json"])
         return result or None
 
+    def list_documents(self, company_code: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        sql = """
+            SELECT
+                doc_id,
+                COALESCE(company_code, '') AS company_code,
+                COALESCE(company_name, '') AS company_name,
+                COALESCE(report_type, '') AS report_type,
+                COALESCE(filename, '') AS filename,
+                COALESCE(source_path, '') AS source_path,
+                COALESCE(total_pages, 0) AS total_pages,
+                COALESCE(title, '') AS title,
+                created_at
+            FROM report_meta
+        """
+        params: list[Any] = []
+        if company_code:
+            sql += " WHERE company_code = ?"
+            params.append(company_code)
+        sql += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        rows = self.fetchall(sql, params)
+        documents = [dict(row) for row in rows]
+        missing_doc_ids = [item["doc_id"] for item in documents if not self._document_source_exists(item.get("source_path", ""))]
+        if missing_doc_ids:
+            self._delete_documents(missing_doc_ids)
+            documents = [item for item in documents if item["doc_id"] not in set(missing_doc_ids)]
+        return documents
+
     def clear_analysis_history(self) -> int:
         task_rows = self.fetchall("SELECT task_id FROM analysis_task WHERE task_type = 'analyze'")
         task_ids = [row["task_id"] for row in task_rows]
@@ -187,6 +216,28 @@ class Database:
         if not row:
             return 0
         return int(row["total"])
+
+    def _document_source_exists(self, source_path: str) -> bool:
+        normalized_path = source_path.strip()
+        if not normalized_path:
+            return True
+
+        path = Path(normalized_path)
+        if not path.is_absolute():
+            path = self.base_dir / path
+        return path.exists()
+
+    def _delete_documents(self, doc_ids: list[str]) -> None:
+        if not doc_ids:
+            return
+
+        placeholders = ",".join("?" for _ in doc_ids)
+        with self.connect() as conn:
+            conn.execute(f"DELETE FROM evidence_chunk WHERE doc_id IN ({placeholders})", doc_ids)
+            conn.execute(f"DELETE FROM document_page WHERE doc_id IN ({placeholders})", doc_ids)
+            conn.execute(f"DELETE FROM report_meta WHERE doc_id IN ({placeholders})", doc_ids)
+            conn.commit()
+        logger.info("pruned %s missing document records from database", len(doc_ids))
 
     def _decode_result_json(self, result_json: str | None) -> dict[str, Any]:
         if not result_json:

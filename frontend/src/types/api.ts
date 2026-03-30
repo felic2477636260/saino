@@ -48,6 +48,31 @@ export interface PromptTemplate {
   is_custom: boolean;
 }
 
+export interface UploadedDocumentItem {
+  doc_id: string;
+  company_code: string;
+  company_name: string;
+  report_type: string;
+  filename: string;
+  source_path: string;
+  title: string;
+  total_pages: number;
+  created_at?: string | null;
+}
+
+export interface UploadDocumentResponse {
+  uploaded_count: number;
+  company_code: string;
+  material_type: string;
+  allowed_file_types: string[];
+  documents: UploadedDocumentItem[];
+}
+
+export interface UploadCapabilityResponse {
+  allowed_file_types: string[];
+  accept_extensions: string[];
+}
+
 export interface SkillInfo {
   skill_id: string;
   name: string;

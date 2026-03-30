@@ -13,8 +13,20 @@ class DataIngestSkill:
         self.db = db or Database()
         self.parser = parser or PDFParserService()
 
-    def ingest_file(self, file_path: Path) -> str:
-        parsed = self.parser.parse_pdf(file_path)
+    def ingest_file(
+        self,
+        file_path: Path,
+        *,
+        company_code: str | None = None,
+        company_name: str | None = None,
+        report_type: str | None = None,
+        industry: str | None = None,
+    ) -> str:
+        parsed = self.parser.parse_file(file_path)
+        resolved_company_code = company_code or parsed.company_code
+        resolved_company_name = company_name or parsed.company_name
+        resolved_report_type = report_type or parsed.report_type
+        resolved_industry = industry or parsed.industry or "generic"
         self.db.execute(
             """
             INSERT OR REPLACE INTO report_meta(doc_id, company_code, company_name, report_type, filename, source_path, total_pages, title)
@@ -22,16 +34,19 @@ class DataIngestSkill:
             """,
             (
                 parsed.doc_id,
-                parsed.company_code,
-                parsed.company_name,
-                parsed.report_type,
+                resolved_company_code,
+                resolved_company_name,
+                resolved_report_type,
                 parsed.filename,
                 parsed.source_path,
                 parsed.total_pages,
                 parsed.title,
             ),
         )
-        self.db.execute("INSERT OR REPLACE INTO company(company_code, company_name, industry) VALUES(?, ?, ?)", (parsed.company_code, parsed.company_name, "game"))
+        self.db.execute(
+            "INSERT OR REPLACE INTO company(company_code, company_name, industry) VALUES(?, ?, ?)",
+            (resolved_company_code, resolved_company_name, resolved_industry),
+        )
         self.db.execute("DELETE FROM document_page WHERE doc_id = ?", (parsed.doc_id,))
         self.db.execute("DELETE FROM evidence_chunk WHERE doc_id = ?", (parsed.doc_id,))
 
@@ -45,9 +60,9 @@ class DataIngestSkill:
             for chunk_index, chunk in enumerate(self._chunk_page(page.text), start=1):
                 metadata = json.dumps(
                     {
-                        "company_code": parsed.company_code,
-                        "company_name": parsed.company_name,
-                        "report_type": parsed.report_type,
+                        "company_code": resolved_company_code,
+                        "company_name": resolved_company_name,
+                        "report_type": resolved_report_type,
                         "title": parsed.title,
                         "filename": parsed.filename,
                         "year": report_year,
@@ -57,8 +72,8 @@ class DataIngestSkill:
                 chunk_rows.append(
                     (
                         parsed.doc_id,
-                        parsed.company_code,
-                        parsed.report_type,
+                        resolved_company_code,
+                        resolved_report_type,
                         page.page_no,
                         chunk["chunk_text"],
                         parsed.filename,

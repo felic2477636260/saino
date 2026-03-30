@@ -4,24 +4,44 @@ import {
   analyzeReport,
   clearRecentReports,
   clearSystemCache as clearSystemCacheRequest,
+  fetchDocuments,
   fetchHealth,
   fetchPromptTemplates,
   fetchRecentReports,
   fetchReport,
   fetchSkills,
+  fetchUploadCapabilities,
   reportPdfUrl,
+  uploadDocuments,
 } from "@/lib/api";
-import type { HealthData, PromptTemplate, ReportDetailResponse, ReportHistoryItem, SkillCatalog } from "@/types/api";
-import type { AnalysisForm, WorkspaceStatus } from "@/types/workspace";
+import type {
+  HealthData,
+  PromptTemplate,
+  ReportDetailResponse,
+  ReportHistoryItem,
+  SkillCatalog,
+  UploadCapabilityResponse,
+  UploadedDocumentItem,
+} from "@/types/api";
+import type { AnalysisForm, UploadMaterialType, WorkspaceStatus } from "@/types/workspace";
 
 const FORM_STORAGE_KEY = "saino.workspace.form";
 const DEFAULT_TEMPLATE_ID = "custom";
+const DEFAULT_MATERIAL_TYPE: UploadMaterialType = "company";
 
 type NoticeTone = "success" | "info";
+type UploadQueueStatus = "uploading" | "success" | "error";
 
 interface NoticeState {
   tone: NoticeTone;
   message: string;
+}
+
+interface UploadQueueItem {
+  id: string;
+  name: string;
+  status: UploadQueueStatus;
+  detail?: string;
 }
 
 function readStoredForm(): AnalysisForm | null {
@@ -34,6 +54,7 @@ function readStoredForm(): AnalysisForm | null {
     const parsed = JSON.parse(raw) as Partial<AnalysisForm>;
     if (
       (parsed.templateId !== undefined && typeof parsed.templateId !== "string") ||
+      (parsed.materialType !== undefined && typeof parsed.materialType !== "string") ||
       typeof parsed.companyCode !== "string" ||
       typeof parsed.query !== "string" ||
       typeof parsed.preferenceNote !== "string" ||
@@ -44,6 +65,7 @@ function readStoredForm(): AnalysisForm | null {
 
     return {
       templateId: parsed.templateId || DEFAULT_TEMPLATE_ID,
+      materialType: (parsed.materialType as UploadMaterialType) || DEFAULT_MATERIAL_TYPE,
       companyCode: parsed.companyCode,
       query: parsed.query,
       preferenceNote: parsed.preferenceNote,
@@ -80,6 +102,7 @@ function getErrorMessage(error: unknown): string {
 export function useWorkspace() {
   const initialForm = readStoredForm() || {
     templateId: DEFAULT_TEMPLATE_ID,
+    materialType: DEFAULT_MATERIAL_TYPE,
     companyCode: "",
     query: "",
     preferenceNote: "",
@@ -89,6 +112,7 @@ export function useWorkspace() {
   const form = reactive<AnalysisForm>(initialForm);
   const status = ref<WorkspaceStatus>("idle");
   const cacheClearing = ref(false);
+  const uploading = ref(false);
   const errorMessage = ref("");
   const notice = ref<NoticeState | null>(null);
   const report = ref<ReportDetailResponse | null>(null);
@@ -96,6 +120,12 @@ export function useWorkspace() {
   const health = ref<HealthData | null>(null);
   const skillCatalog = ref<SkillCatalog>({});
   const promptTemplates = ref<PromptTemplate[]>([]);
+  const uploadedDocuments = ref<UploadedDocumentItem[]>([]);
+  const uploadCapabilities = ref<UploadCapabilityResponse>({
+    allowed_file_types: ["PDF", "TXT", "Markdown"],
+    accept_extensions: [".pdf", ".txt", ".md"],
+  });
+  const uploadQueue = ref<UploadQueueItem[]>([]);
   const sidebarOpen = ref(false);
   const sidebarCollapsed = ref(false);
   const lastAction = ref<{ type: "analyze" } | { type: "load-report"; taskId: string } | null>(null);
@@ -108,14 +138,32 @@ export function useWorkspace() {
     { deep: true },
   );
 
+  watch(
+    () => form.companyCode.trim(),
+    async (companyCode) => {
+      if (!companyCode) {
+        uploadedDocuments.value = [];
+        return;
+      }
+      try {
+        uploadedDocuments.value = await fetchDocuments(companyCode);
+      } catch {
+        // Best effort only.
+      }
+    },
+    { immediate: true },
+  );
+
   const canSubmit = computed(() => form.companyCode.trim().length > 0 && form.query.trim().length > 0);
+  const canUpload = computed(
+    () => form.companyCode.trim().length > 0 && status.value !== "loading" && !uploading.value && !cacheClearing.value,
+  );
   const currentPdfUrl = computed(() => (report.value ? reportPdfUrl(report.value.task_id) : ""));
-  const busy = computed(() => status.value === "loading" || cacheClearing.value);
+  const busy = computed(() => status.value === "loading" || cacheClearing.value || uploading.value);
   const currentTemplate = computed<PromptTemplate | null>(() => {
     if (!promptTemplates.value.length) {
       return null;
     }
-
     return (
       promptTemplates.value.find((item) => item.template_id === form.templateId) ||
       promptTemplates.value.find((item) => item.is_custom) ||
@@ -125,10 +173,16 @@ export function useWorkspace() {
   });
 
   async function refreshMetadata(): Promise<void> {
-    const [healthData, skills, templates] = await Promise.all([fetchHealth(), fetchSkills(), fetchPromptTemplates()]);
+    const [healthData, skills, templates, capabilities] = await Promise.all([
+      fetchHealth(),
+      fetchSkills(),
+      fetchPromptTemplates(),
+      fetchUploadCapabilities(),
+    ]);
     health.value = healthData;
     skillCatalog.value = Object.fromEntries(skills.map((item) => [item.name, item]));
     promptTemplates.value = templates;
+    uploadCapabilities.value = capabilities;
 
     if (!templates.some((item) => item.template_id === form.templateId)) {
       form.templateId = templates.find((item) => item.is_custom)?.template_id || templates[0]?.template_id || DEFAULT_TEMPLATE_ID;
@@ -139,8 +193,17 @@ export function useWorkspace() {
     history.value = await fetchRecentReports();
   }
 
+  async function refreshDocuments(): Promise<void> {
+    const companyCode = form.companyCode.trim();
+    if (!companyCode) {
+      uploadedDocuments.value = [];
+      return;
+    }
+    uploadedDocuments.value = await fetchDocuments(companyCode);
+  }
+
   async function bootstrap(): Promise<void> {
-    const results = await Promise.allSettled([refreshMetadata(), refreshHistory()]);
+    const results = await Promise.allSettled([refreshMetadata(), refreshHistory(), refreshDocuments()]);
     const rejected = results.find((item) => item.status === "rejected");
     if (rejected && rejected.status === "rejected") {
       errorMessage.value = getErrorMessage(rejected.reason);
@@ -166,11 +229,71 @@ export function useWorkspace() {
       });
       report.value = await fetchReport(response.task_id);
       status.value = "success";
-      await Promise.allSettled([refreshMetadata(), refreshHistory()]);
+      await Promise.allSettled([refreshMetadata(), refreshHistory(), refreshDocuments()]);
     } catch (error) {
       errorMessage.value = getErrorMessage(error);
       status.value = "error";
-      await Promise.allSettled([refreshMetadata(), refreshHistory()]);
+      await Promise.allSettled([refreshMetadata(), refreshHistory(), refreshDocuments()]);
+    }
+  }
+
+  async function uploadFiles(files: File[]): Promise<void> {
+    const companyCode = form.companyCode.trim();
+    if (!files.length || !companyCode || uploading.value) {
+      return;
+    }
+
+    const queueItems = files.map<UploadQueueItem>((file, index) => ({
+      id: `${Date.now()}-${index}-${file.name}`,
+      name: file.name,
+      status: "uploading",
+      detail: "正在上传并纳入分析资料库",
+    }));
+
+    uploadQueue.value = queueItems;
+    uploading.value = true;
+    errorMessage.value = "";
+    notice.value = null;
+
+    try {
+      const result = await uploadDocuments({
+        files,
+        companyCode,
+        materialType: form.materialType,
+        industryKey: currentTemplate.value?.industry_key || "generic",
+      });
+      const freshDocuments = await fetchDocuments(companyCode).catch(() => null);
+      if (freshDocuments) {
+        uploadedDocuments.value = freshDocuments;
+      } else {
+        const existing = new Map(uploadedDocuments.value.map((item) => [item.doc_id, item]));
+        result.documents.forEach((item) => {
+          existing.set(item.doc_id, item);
+        });
+        uploadedDocuments.value = Array.from(existing.values());
+      }
+      uploadQueue.value = queueItems.map((item) => ({
+        ...item,
+        status: "success",
+        detail: "已上传，可用于后续分析",
+      }));
+      notice.value = {
+        tone: "success",
+        message: `已上传 ${result.uploaded_count} 个文件，当前公司共接入 ${uploadedDocuments.value.length} 份可检索资料。`,
+      };
+    } catch (error) {
+      const message = getErrorMessage(error);
+      errorMessage.value = message;
+      uploadQueue.value = queueItems.map((item) => ({
+        ...item,
+        status: "error",
+        detail: message,
+      }));
+    } finally {
+      await refreshDocuments().catch(() => {
+        // Best effort only. Upload status feedback stays unchanged if the refresh fails.
+      });
+      uploading.value = false;
     }
   }
 
@@ -199,7 +322,7 @@ export function useWorkspace() {
 
   async function retry(): Promise<void> {
     if (!lastAction.value) {
-      await Promise.allSettled([refreshMetadata(), refreshHistory()]);
+      await Promise.allSettled([refreshMetadata(), refreshHistory(), refreshDocuments()]);
       return;
     }
     if (lastAction.value.type === "analyze") {
@@ -214,7 +337,7 @@ export function useWorkspace() {
       return;
     }
 
-    const confirmed = window.confirm("确认删除全部历史分析记录吗？此操作不会删除 data/raw 下的原始 PDF 文件。");
+    const confirmed = window.confirm("确认删除全部历史分析记录吗？此操作不会删除已上传的原始资料。");
     if (!confirmed) {
       return;
     }
@@ -252,10 +375,10 @@ export function useWorkspace() {
         "4. 当前前端表单、本地任务状态与界面残留数据",
         "",
         "不会清除：",
-        "- ARK_API_KEY / ARK_BASE_URL / MODEL_NAME 等真实 API 配置",
-        "- data/raw 下的原始 PDF 文件",
+        "- 真实 API 配置",
+        "- 已上传的原始资料文件",
         "",
-        "清理后若要继续分析，请先重新导入文件或重新执行 ingest。",
+        "清理后如要继续分析，原始资料仍在，但需要重新入库后再分析。",
       ].join("\n"),
     );
 
@@ -272,8 +395,11 @@ export function useWorkspace() {
 
       report.value = null;
       history.value = [];
+      uploadedDocuments.value = [];
+      uploadQueue.value = [];
       lastAction.value = null;
       form.templateId = DEFAULT_TEMPLATE_ID;
+      form.materialType = DEFAULT_MATERIAL_TYPE;
       form.companyCode = "";
       form.query = "";
       form.preferenceNote = "";
@@ -283,11 +409,11 @@ export function useWorkspace() {
       sidebarOpen.value = false;
       sidebarCollapsed.value = false;
 
-      await Promise.allSettled([refreshMetadata(), refreshHistory()]);
+      await Promise.allSettled([refreshMetadata(), refreshHistory(), refreshDocuments()]);
 
       notice.value = {
         tone: "success",
-        message: `系统缓存已清理：删除了 ${result.cleared.parsed_documents} 份文档缓存、${result.cleared.evidence_chunks} 条证据分块和 ${result.cleared.analysis_tasks} 条分析记录。真实 API 配置与原始 PDF 文件未被删除。`,
+        message: `系统缓存已清理：删除了 ${result.cleared.parsed_documents} 份文档缓存、${result.cleared.evidence_chunks} 条证据分块和 ${result.cleared.analysis_tasks} 条分析记录。`,
       };
     } catch (error) {
       errorMessage.value = getErrorMessage(error);
@@ -300,16 +426,20 @@ export function useWorkspace() {
   function newAnalysis(): void {
     report.value = null;
     errorMessage.value = "";
+    notice.value = null;
     status.value = "idle";
     sidebarOpen.value = false;
     sidebarCollapsed.value = false;
   }
 
   function clearInputs(): void {
+    form.materialType = DEFAULT_MATERIAL_TYPE;
     form.companyCode = "";
     form.query = "";
     form.preferenceNote = "";
     form.topK = 8;
+    uploadedDocuments.value = [];
+    uploadQueue.value = [];
     errorMessage.value = "";
     if (!report.value) {
       status.value = "idle";
@@ -362,7 +492,9 @@ export function useWorkspace() {
     form,
     status,
     cacheClearing,
+    uploading,
     busy,
+    canUpload,
     notice,
     report,
     history,
@@ -370,6 +502,9 @@ export function useWorkspace() {
     skillCatalog,
     promptTemplates,
     currentTemplate,
+    uploadedDocuments,
+    uploadCapabilities,
+    uploadQueue,
     sidebarOpen,
     sidebarCollapsed,
     errorMessage,
@@ -378,12 +513,14 @@ export function useWorkspace() {
     currentPdfUrl,
     bootstrap,
     analyze,
+    uploadFiles,
     openReport,
     retry,
     clearHistory,
     clearSystemCache,
     refreshMetadata,
     refreshHistory,
+    refreshDocuments,
     newAnalysis,
     clearInputs,
     fillExample,

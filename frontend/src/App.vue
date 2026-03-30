@@ -15,7 +15,9 @@ const {
   form,
   status,
   cacheClearing,
+  uploading,
   busy,
+  canUpload,
   notice,
   report,
   history,
@@ -23,6 +25,9 @@ const {
   skillCatalog,
   promptTemplates,
   currentTemplate,
+  uploadedDocuments,
+  uploadCapabilities,
+  uploadQueue,
   sidebarOpen,
   sidebarCollapsed,
   errorMessage,
@@ -31,6 +36,7 @@ const {
   currentPdfUrl,
   bootstrap,
   analyze,
+  uploadFiles,
   openReport,
   retry,
   clearHistory,
@@ -85,20 +91,28 @@ onMounted(() => {
           :prompt-templates="promptTemplates"
           :active-template-id="form.templateId"
           :current-template="currentTemplate"
+          :material-type="form.materialType"
           :company-code="form.companyCode"
           :query="form.query"
           :preference-note="form.preferenceNote"
           :top-k="form.topK"
+          :uploaded-documents="uploadedDocuments"
+          :upload-capabilities="uploadCapabilities"
+          :upload-queue="uploadQueue"
           :disabled="busy"
+          :uploading="uploading"
+          :can-upload="canUpload"
           :submitting="status === 'loading'"
           :cache-clearing="cacheClearing"
           :can-submit="canSubmit"
           :notice-message="notice?.message"
           :notice-tone="notice?.tone"
+          @update:material-type="form.materialType = $event"
           @update:company-code="form.companyCode = $event"
           @update:query="form.query = $event"
           @update:preference-note="form.preferenceNote = $event"
           @update:top-k="form.topK = $event"
+          @upload-files="uploadFiles"
           @select-template="selectTemplate"
           @apply-template="applyActiveTemplate"
           @submit="analyze"
